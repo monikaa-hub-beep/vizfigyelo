@@ -10,7 +10,7 @@ Public rainfall page using HungaroMet open data (odp.met.hu). Source must be cit
 
 ## Set up
 1. Create a GitHub repo, upload all of these files.
-2. In `collector/collect.py` replace `CHANGE-ME@example.com` in `UA` with your contact e-mail.
+2. In `collector/collect.py` replace `maksa.monika@gmail.com` in `UA` with your contact e-mail.
 3. Run `python collector/collect.py --list` once, check that each name maps to the station you want,
    and pin it with `"id": "NNNNN"` in `STATIONS` if needed.
 4. Settings > Pages > deploy from branch `main`, folder `/ (root)`.
