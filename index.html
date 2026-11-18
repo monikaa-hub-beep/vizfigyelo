@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vízfigyelő – Csapadék Magyarországon</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f4f8fb;--card:#fff;--tx:#12263a;--mu:#5d7083;--bd:#d9e3ec;--ac:#0b7fc7;--wa:#c2410c;--land:#e4eef5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a26;--card:#152433;--tx:#e6eef5;--mu:#93a7ba;--bd:#26394c;--ac:#4cb3f0;--wa:#fb923c;--land:#1b2f42}}
+:root[data-theme="dark"]{--bg:#0e1a26;--card:#152433;--tx:#e6eef5;--mu:#93a7ba;--bd:#26394c;--ac:#4cb3f0;--wa:#fb923c;--land:#1b2f42}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:1080px;margin:0 auto;padding:16px}
+h1{font-size:1.6rem;margin:.2em 0}h2{font-size:1.1rem;margin:0 0 .5em}
+.sub{color:var(--mu);margin:0 0 12px}
+.demo{background:color-mix(in srgb,var(--wa) 15%,transparent);border:1px solid var(--wa);border-radius:10px;padding:10px 12px;margin:12px 0;font-size:.9rem}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+svg{width:100%;height:auto;display:block}
+.land{fill:var(--land);stroke:var(--mu);stroke-width:1.5}
+.dot{cursor:pointer;stroke:var(--card);stroke-width:2}
+.dot:hover,.dot.sel{stroke:var(--tx)}
+.lbl{font-size:11px;fill:var(--tx);pointer-events:none}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{text-align:left;padding:6px 4px;border-bottom:1px solid var(--bd)}
+th{color:var(--mu);font-weight:600}
+tr.r{cursor:pointer}tr.r:hover{background:var(--land)}
+.sc{overflow-x:auto}
+.tag{font-size:.75rem;padding:1px 7px;border-radius:99px;border:1px solid var(--bd);color:var(--mu)}
+.soon{margin-top:14px;color:var(--mu)}
+footer{color:var(--mu);font-size:.82rem;margin:18px 0}
+</style>
+</head>
+<body>
+<div class="w">
+<h1>💧 Vízfigyelő</h1>
+<p class="sub">Csapadék Magyarországon – mért adatok állomásonként.</p>
+<div class="demo" id="demo"><b>Demó adatok.</b> A számok mintaadatok, nem valós mérések. Az éles HungaroMet-adatok bekötése következik.</div>
+
+<div class="grid">
+ <div class="card">
+  <svg id="map" viewBox="0 0 700 430" role="img" aria-label="Magyarország térképe mérőállomásokkal"></svg>
+ </div>
+ <div class="card">
+  <h2 id="dt">Válassz egy állomást</h2>
+  <div id="dm" class="sub">Kattints a térképen egy pontra vagy a táblázat egy sorára.</div>
+  <svg id="ch" viewBox="0 0 320 140"></svg>
+  <div class="sub" id="dn"></div>
+</div>
+</div>
+
+<div class="card" style="margin-top:14px">
+ <h2>Csapadék állomásonként</h2>
+ <div class="sc"><table id="tb"></table></div>
+</div>
+
+<div class="card soon"><b>Hamarosan:</b> folyók vízállása és vízhozama, tavak vízállása. Ezekhez az adatok tulajdonosától írásos engedély kell, ezért a Vízfigyelő először csak csapadékadatokat mutat.</div>
+
+<footer>
+Adatok forrása: HungaroMet Nonprofit Zrt. (odp.met.hu). Az adatokat módosítás nélkül, a forrás megjelölésével közöljük. A napi csapadékösszeg a HungaroMet meghatározása szerint 06:00–06:00 UTC közötti időszakra vonatkozik. Frissítve: <span id="up"></span>
+</footer>
+</div>
+
+<script>
+// ---- ADATRÉTEG: ezt a blokkot cseréli majd a gyűjtő script kimenete ----
+// last = legutóbbi napi csapadékösszeg (mm), daily = napi értékek az elmúlt 14 napra (mm), régi → új
+const DEMO={
+ updated:"2026-11-18T12:00:00+01:00",demo:true,
+ stations:[
+  {n:"Budapest",lo:19.04,la:47.5,last:0.0,lastDate:"2026-11-17",daily:[0,0,0.2,0,0,0,0,0,1.1,0,0,0,0,0]},
+  {n:"Győr",lo:17.63,la:47.69,last:1.8,lastDate:"2026-11-17",daily:[0,0,0,0,0.4,0,0,0,0,2.3,0,0,0,1.8]},
+  {n:"Pécs",lo:18.23,la:46.07,last:0.0,lastDate:"2026-11-17",daily:[0,0,0,0,0,0,0,0.6,0,0,0,0,0,0]},
+  {n:"Szeged",lo:20.15,la:46.25,last:0.0,lastDate:"2026-11-17",daily:[0,0,0,0,0,0,0,0,0,0,0.2,0,0,0]},
+  {n:"Debrecen",lo:21.63,la:47.53,last:0.4,lastDate:"2026-11-17",daily:[0,0,0,0,0,0.8,0,0,0,0,0,1.2,0,0.4]},
+  {n:"Miskolc",lo:20.78,la:48.1,last:2.6,lastDate:"2026-11-17",daily:[0,0,0,1.0,0,0,0,0,3.4,0,0,0,0,2.6]},
+  {n:"Szombathely",lo:16.62,la:47.23,last:0.0,lastDate:"2026-11-17",daily:[0,0,0,0,0,0,0,1.5,0,0,0,0,0,0]},
+  {n:"Siófok",lo:18.05,la:46.9,last:0.0,lastDate:"2026-11-17",daily:[0,0,0,0,0,0,0.3,0,0,0,0,0,0,0]}
+ ]
+};
+// ----------------------------------------------------------------------
+let DATA=DEMO;
+const OUT=[[16.11,46.87],[16.45,47.4],[16.65,47.7],[17.15,48.02],[18.0,47.75],[18.85,47.82],[19.1,48.05],[19.8,48.2],[20.4,48.55],[21.4,48.55],[22.15,48.4],[22.9,48.4],[22.9,47.95],[22.4,47.75],[22.0,47.5],[21.7,46.9],[21.3,46.4],[20.8,46.2],[20.1,46.15],[19.5,46.15],[18.9,45.93],[18.4,45.78],[17.6,45.95],[16.6,46.45],[16.3,46.55]];
+const P=(lo,la)=>[(lo-16)*100+10,(48.7-la)*150+15];
+const el=id=>document.getElementById(id);
+const NS="http://www.w3.org/2000/svg";
+const f=(x,d=1)=>x==null?"–":Number(x).toLocaleString("hu-HU",{minimumFractionDigits:d,maximumFractionDigits:d});
+let sel=null;
+
+function render(){
+ const m=el("map");m.innerHTML="";
+ const poly=document.createElementNS(NS,"polygon");
+ poly.setAttribute("class","land");poly.setAttribute("points",OUT.map(p=>P(...p).join(",")).join(" "));m.appendChild(poly);
+ DATA.stations.forEach((s,i)=>{
+  const [x,y]=P(s.lo,s.la),r=7+Math.min(s.last||0,10)*1.5;
+  const c=document.createElementNS(NS,"circle");
+  c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",r);
+  c.setAttribute("fill",s.last>0?"#0b7fc7":"#8ea3b5");c.setAttribute("fill-opacity",".85");
+  c.setAttribute("class","dot"+(sel===i?" sel":""));
+  c.onclick=()=>{sel=i;render()};
+  const t=document.createElementNS(NS,"title");t.textContent=s.n+": "+f(s.last)+" mm";c.appendChild(t);
+  m.appendChild(c);
+  const l=document.createElementNS(NS,"text");l.setAttribute("x",x+r+3);l.setAttribute("y",y+4);l.setAttribute("class","lbl");l.textContent=s.n;m.appendChild(l);
+ });
+ el("tb").innerHTML="<tr><th>Állomás</th><th>Legutóbbi napi érték (mm)</th></tr>"+
+  DATA.stations.map((s,i)=>`<tr class="r" data-i="${i}"><td>${s.n}</td><td>${f(s.last)}</td></tr>`).join("");
+ el("tb").querySelectorAll("tr.r").forEach(r=>r.onclick=()=>{sel=+r.dataset.i;render()});
+ detail();
+}
+function detail(){
+ const ch=el("ch");ch.innerHTML="";
+ if(sel===null)return;
+ const s=DATA.stations[sel];
+ el("dt").textContent=s.n;
+ el("dm").textContent="Legutóbbi napi érték ("+(s.lastDate||"")+"): "+f(s.last)+" mm";
+ const d=s.daily.map(v=>v||0),mx=Math.max(...d,1)*1.1;
+ const X=i=>20+i*(290/13),Y=v=>120-v/mx*100;
+ ch.innerHTML=`<line x1="20" y1="120" x2="310" y2="120" stroke="var(--bd)"/>`+
+  d.map((v,i)=>`<rect x="${X(i)-8}" y="${Y(v)}" width="16" height="${120-Y(v)}" fill="var(--ac)" opacity=".8"/>`).join("")+
+  `<text x="20" y="135" class="lbl" style="fill:var(--mu)">−14 nap</text><text x="285" y="135" class="lbl" style="fill:var(--mu)">ma</text>`;
+ el("dn").innerHTML=`Napi csapadék, elmúlt 14 nap (mm) ${DATA.demo?'<span class="tag">demó adat</span>':""}`;
+}
+function init(){
+ el("demo").style.display=DATA.demo?"":"none";
+ el("up").textContent=new Date(DATA.updated).toLocaleString("hu-HU")+(DATA.demo?" (demó)":"");
+ render();
+}
+fetch("data.json",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject())
+ .then(d=>{if(d&&d.stations&&d.stations.length)DATA=d}).catch(()=>{}).finally(init);
+</script>
+</body>
+</html>
