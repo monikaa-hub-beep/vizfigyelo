@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kapcsolat – Vízfigyelő</title><link rel="stylesheet" href="assets/site.css"></head>
+<body><main class="w prose">
+<h1>Kapcsolat</h1>
+<p class="sub">Kérdésed, javaslatod vagy hibajelzésed van? Írj nekünk. Az üzenet közvetlenül hozzám érkezik, az e-mail-cím nem látható az oldalon.</p>
+<form id="cf" class="card" novalidate>
+ <label for="nm">Név (nem kötelező)</label><input id="nm" name="name" autocomplete="name" maxlength="100">
+ <label for="em">E-mail-címed (ha választ szeretnél)</label><input id="em" name="email" type="email" autocomplete="email" maxlength="200">
+ <label for="ms">Üzenet *</label><textarea id="ms" name="message" rows="6" maxlength="3000" required></textarea>
+ <input name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px">
+ <label class="chk"><input type="checkbox" id="cn" required><span>Elfogadom az <a href="adatvedelem.html">adatkezelési tájékoztatót</a>. *</span></label>
+ <p><button class="btn" type="submit" id="sb">Küldés</button></p>
+ <p id="st" role="status"></p>
+</form>
+</main>
+<script>
+// Állítsd be a Formspree űrlap-azonosítót (lásd README): https://formspree.io/f/AZONOSÍTÓ
+const FORM_ENDPOINT="https://formspree.io/f/YOUR_FORM_ID";
+const f=document.getElementById("cf"),st=document.getElementById("st");
+f.addEventListener("submit",async e=>{
+ e.preventDefault();
+ const d=Object.fromEntries(new FormData(f));
+ if(!d.message||d.message.trim().length<10){st.textContent="Kérlek, írj legalább néhány mondatot.";return}
+ if(d.email&&!f.email.checkValidity()){st.textContent="Az e-mail-cím formátuma hibásnak tűnik.";return}
+ if(!document.getElementById("cn").checked){st.textContent="Az adatkezelési tájékoztató elfogadása szükséges.";return}
+ if(d._gotcha){st.textContent="Köszönjük, az üzenet elment!";f.reset();return}
+ if(FORM_ENDPOINT.includes("YOUR_FORM_ID")){st.textContent="Az űrlap még nincs bekötve (lásd README).";return}
+ const b=document.getElementById("sb");b.disabled=true;st.textContent="Küldés…";
+ try{
+  const r=await fetch(FORM_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},
+   body:JSON.stringify({name:d.name,email:d.email,message:d.message,_gotcha:d._gotcha,consent:"adatkezelési tájékoztató elfogadva"})});
+  if(!r.ok)throw 0;
+  st.textContent="Köszönjük, az üzenet elment!";f.reset();
+ }catch(_){st.textContent="Nem sikerült elküldeni. Kérlek, próbáld meg később."}
+ b.disabled=false;
+});
+</script><script src="assets/site.js"></script></body></html>
