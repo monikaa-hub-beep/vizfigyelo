@@ -1,0 +1,36 @@
+name: Update data
+on:
+  schedule:
+    - cron: "20 */3 * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python collector/collect.py
+      - run: python collector/forecast.py
+      - run: python collector/vizugy_csv.py
+      - run: python collector/build_pages.py
+      - name: Commit if changed
+        run: |
+          git config user.name "vizfigyelo-bot"
+          git config user.email "bot@users.noreply.github.com"
+          for p in data.json climate_cache.json forecast.json vizugy.json sitemap.xml index.html eso; do
+            [ -e "$p" ] && git add "$p" || true
+          done
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "Update data"
+          for i in 1 2 3; do
+            if git pull --rebase -X theirs origin main && git push; then exit 0; fi
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          echo "push failed 3 times"; exit 1
