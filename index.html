@@ -39,6 +39,7 @@
    <div><h3>Napi csapadék, 14 nap (mm)</h3><svg id="ch" viewBox="0 0 320 140"></svg><div class="note" id="dn"></div></div>
    <div><h3>Havi csapadék</h3><div class="legend" id="lg1"></div><div id="c1"></div></div>
    <div class="wide"><h3>Évenkénti összeg</h3><div class="legend" id="lg2"></div><div id="c2"></div></div>
+   <div class="wide" id="fcw" hidden><h3>Mennyi eső várható a következő napokban?</h3><div id="fcb"></div></div>
   </div>
   <p class="note" id="cn"></p>
  </div>
@@ -68,6 +69,12 @@
  <p>A napi csapadékösszegeket a HungaroMet Nonprofit Zrt. nyílt adatai adják (odp.met.hu). A „csapadék” az eső és a hó együttes mennyisége milliméterben; egy nap a HungaroMet meghatározása szerint 06:00-tól másnap 06:00-ig (UTC) tart.</p>
 </div>
 
+<div class="card" id="citc">
+ <h2>Mennyi eső esett a te városodban?</h2>
+ <p class="note">Minden városnak külön, megosztható oldala van.</p>
+ <p id="citl"><!--CITIES--><!--/CITIES--></p>
+</div>
+
 <div class="card" id="cmpc">
  <h2>Havi összehasonlítás: idei év vs. átlag</h2>
  <p class="note">Az állomást és az összehasonlított évet a fenti panelen választhatod ki.</p>
@@ -80,15 +87,17 @@
   <div class="ctl"><select id="vs" aria-label="Mérőhely"></select><select id="vp" aria-label="Időszak"><option value="30">30 nap</option><option value="90" selected>90 nap</option><option value="all">Az év eleje óta</option></select></div>
  </div>
  <div class="tiles" id="vtl"></div>
+ <div id="vnote"></div>
  <div id="vch"></div>
  <h3 style="margin:1.2em 0 .3em">Összes mérőhely</h3>
  <div class="sc"><table id="vt"></table></div>
  <p class="note" id="vn"></p>
 </div>
 
-<p class="note" style="margin-top:16px">Csapadékadatok forrása: HungaroMet Nonprofit Zrt. (odp.met.hu). A „legutóbbi napi érték” a HungaroMet által közölt, változtatás nélküli napi csapadékösszeg (06:00–06:00 UTC). Frissítve: <span id="up"></span></p>
+<p class="note" style="margin-top:16px">Csapadékadatok forrása: HungaroMet Nonprofit Zrt. (odp.met.hu). A „legutóbbi napi érték” a HungaroMet által közölt, változtatás nélküli napi csapadékösszeg (06:00–06:00 UTC). Frissítve: <span id="up"></span>. Hogyan számoljuk az átlagokat és a rekordokat? <a href="modszertan.html">Módszertan</a>.</p>
 </main>
 
+<script src="assets/common.js"></script>
 <script>
 const DEMO={updated:"2026-11-18T12:00:00+01:00",demo:true,stations:[
  {n:"Budapest",lo:19.04,la:47.5,last:0.0,lastDate:"2026-11-17",daily:[0,0,0.2,0,0,0,0,0,1.1,0,0,0,0,0]},
@@ -106,15 +115,8 @@ const DEMO={updated:"2026-11-18T12:00:00+01:00",demo:true,stations:[
   s.ytdStats={avg:520,n:14,from:2012,to:2025,min:{y:2022,v:301.5},max:{y:2014,v:760.2},rank:2+i,of:15}});})();
 // ---------------------------------------------------------------------
 const OUT=[[16.11,46.87],[16.45,47.4],[16.65,47.7],[17.15,48.02],[18.0,47.75],[18.85,47.82],[19.1,48.05],[19.8,48.2],[20.4,48.55],[21.4,48.55],[22.15,48.4],[22.9,48.4],[22.9,47.95],[22.4,47.75],[22.0,47.5],[21.7,46.9],[21.3,46.4],[20.8,46.2],[20.1,46.15],[19.5,46.15],[18.9,45.93],[18.4,45.78],[17.6,45.95],[16.6,46.45],[16.3,46.55]];
-const MN=["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
-const MS=["jan","feb","már","ápr","máj","jún","júl","aug","szep","okt","nov","dec"];
 const P=(lo,la)=>[(lo-16)*100+10,(48.7-la)*150+15];
-const el=id=>document.getElementById(id),NS="http://www.w3.org/2000/svg";
-const f=(x,d=1)=>x==null?"–":Number(x).toLocaleString("hu-HU",{minimumFractionDigits:d,maximumFractionDigits:d});
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const lbl=s=>{let p="";if(s.hmName){p=s.hmName.toLowerCase().startsWith(s.n.toLowerCase())?s.hmName.slice(s.n.length).trim():s.hmName}return p?s.n+" – "+p:s.n};
-const sum=a=>a.reduce((p,q)=>p+q,0);
-const yrs=s=>s.mtdAvg!=null&&s.mtdAvgFrom?`${s.mtdAvgFrom}–${s.mtdAvgTo} (${s.mtdAvgN} év)`:"";
+const NS="http://www.w3.org/2000/svg";
 let DATA=DEMO,sel=null,csi=0,cyr=null;
 
 function map(){
@@ -162,7 +164,7 @@ function detail(){
  const d=s.daily.map(v=>v||0),mx=Math.max(...d,1)*1.1,X=i=>20+i*(290/13),Y=v=>120-v/mx*100;
  ch.innerHTML=`<line x1="20" y1="120" x2="310" y2="120" stroke="var(--bd)"/>`+d.map((v,i)=>`<rect x="${X(i)-8}" y="${Y(v)}" width="16" height="${120-Y(v)}" style="fill:var(--ac)" opacity=".85"/>`).join("")+
   `<text x="20" y="135" class="lbl" style="fill:var(--mu)">−14 nap</text><text x="285" y="135" class="lbl" style="fill:var(--mu)">legutóbbi</text>`;
- summary();faq();el("dn").innerHTML=DATA.demo?'<span class="tag">demó adat</span>':"";
+ summary();faq();fcRender();el("dn").innerHTML=DATA.demo?'<span class="tag">demó adat</span>':"";
 }
 function summary(){
  const ss=el("ss");
@@ -182,7 +184,9 @@ function summary(){
    t+=` A legkevesebb ${f(Yt.min.v)} mm (${Yt.min.y}), a legtöbb ${f(Yt.max.v)} mm (${Yt.max.y}); ${Yt.rank}. a legszárazabb a(z) ${Yt.of} év közül.`}
   else t+=". Az átlaghoz még nincs elég hosszú adatsor.";L.push(t)}
  el("sm").innerHTML="<ul style='margin:.4em 0 0;padding-left:1.2em'>"+L.map(x=>`<li style="margin:.5em 0">${x}</li>`).join("")+"</ul>"+
-  `<p class="note">${s.hmName?"Mérőállomás: "+esc(s.hmName)+". ":""}Az összegek, átlagok és sorrendek számított értékek a HungaroMet napi adataiból; az átlag az állomás rendelkezésre álló évei alapján készül, nem hivatalos éghajlati normál.${DATA.demo?' <span class="tag">demó adat</span>':""}</p>`;
+  `<p class="note">${s.hmName?"Mérőállomás: "+esc(s.hmName)+". ":""}Az összegek, átlagok és sorrendek számított értékek a HungaroMet napi adataiból; az átlag az állomás rendelkezésre álló évei alapján készül, nem hivatalos éghajlati normál.${DATA.demo?' <span class="tag">demó adat</span>':""}</p>`+
+  (s.slug?`<p style="margin:.6em 0 0"><a href="eso/${esc(s.slug)}.html"><b>Mennyi eső esett ${esc(s.loc||s.n)}?</b> Külön oldal ehhez a városhoz</a> · <button class="btn alt" id="shm" type="button">Link megosztása</button> <span class="note" id="shs" role="status"></span></p>`:"");
+ if(s.slug)shareButton(el("shm"),el("shs"),new URL("eso/"+s.slug+".html",location.href).href,s.n+" – Mennyi eső esett?");
 }
 function faq(){
  if(sel===null){el("faq").innerHTML="";return}
@@ -192,20 +196,6 @@ function faq(){
  if(s.mtd)Q.push(["Hány mm eső esett ebben a hónapban?",`${P}: ${MN[s.mtd.month-1]} 1–${s.mtd.days}. között összesen ${f(s.mtd.sum)} mm csapadék (eső) esett`+(s.mtdAvg!=null?`; ugyanebben az időszakban az átlag ${f(s.mtdAvg)} mm (${s.mtdAvgFrom}–${s.mtdAvgTo}).`:".")]);
  if(s.ytd)Q.push(["Hány mm eső esett idén?",`${P}: január 1. óta összesen ${f(s.ytd.sum)} mm csapadék (eső) esett`+(s.ytdStats?`; ugyanebben az időszakban az átlag ${f(s.ytdStats.avg)} mm (${s.ytdStats.from}–${s.ytdStats.to}).`:".")]);
  el("faq").innerHTML=Q.map(q=>`<h3>${q[0]}</h3><p>${q[1]}</p>`).join("")+(DATA.demo?'<p class="note"><span class="tag">demó adat</span></p>':"");
-}
-function barChart(cats,groups,line,mark){
- const W=640,H=230,L=40,R=10,T=18,B=28,pw=W-L-R,ph=H-T-B;
- const all=groups.flatMap(g=>g.v).filter(v=>v!=null).concat(line!=null?[line]:[]);
- const mx=Math.max(...all,1)*1.1,n=cats.length,gw=pw/n,bw=Math.min(18,gw/(groups.length+.6));
- let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
- for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;s+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--bd)"/><text x="${L-4}" y="${y+4}" text-anchor="end" class="lbl" style="fill:var(--mu)">${Math.round(mx*k/4)}</text>`}
- cats.forEach((c,i)=>{const x0=L+gw*i+gw/2-bw*groups.length/2;
-  groups.forEach((g,j)=>{const v=g.v[i];if(v==null)return;const h=v/mx*ph,col=Array.isArray(g.c)?g.c[i]:g.c;
-   s+=`<rect x="${x0+j*bw}" y="${T+ph-h}" width="${bw-1}" height="${h}" style="fill:${col}"><title>${c}: ${f(v)} mm</title></rect>`});
-  s+=`<text x="${L+gw*i+gw/2}" y="${H-10}" text-anchor="middle" class="lbl" style="fill:var(--mu)">${c}</text>`});
- if(line!=null){const y=T+ph-line/mx*ph;s+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" style="stroke:var(--wa)" stroke-width="2" stroke-dasharray="5 4"/>`}
- if(mark&&groups[0].v[mark.i]!=null){const v=groups[0].v[mark.i];s+=`<text x="${L+gw*mark.i+gw/2}" y="${T+ph-v/mx*ph-4}" text-anchor="middle" class="lbl" style="fill:var(--wa);font-weight:700">${mark.t}</text>`}
- return s+"</svg>";
 }
 function cmp(){
  el("cs").innerHTML=DATA.stations.map((s,i)=>`<option value="${i}"${i===csi?" selected":""}>${esc(lbl(s))}</option>`).join("");
@@ -232,49 +222,42 @@ function cmp(){
  const done=Y[cyr].filter(x=>x!=null).length;
  el("cn").textContent=`${cyr}: ${f(sum(Y[cyr].filter(x=>x!=null)),0)} mm`+(done<12?` (${done} lezárt hónap alapján${isCur?", a folyó hónap nélkül":""})`:"")+`. Az értékek számítottak (napi adatokból összegezve); olyan hónap nem szerepel, amelyből 2-nél több nap hiányzik.`;
 }
-function pick(i){sel=i;csi=i;map();detail();cmp()}
+function pick(i){sel=i;csi=i;try{const sl=DATA.stations[i]&&DATA.stations[i].slug;if(sl)history.replaceState(null,"","#"+sl)}catch(e){}map();detail();cmp()}
 el("ss").onchange=e=>pick(+e.target.value);
 el("cs").onchange=e=>{csi=+e.target.value;cmp()};
 el("cy").onchange=e=>{cyr=e.target.value;cmp()};
 
+let FC=null;
+function fcRender(){const s=sel===null?null:DATA.stations[sel],fc=FC&&s&&s.slug&&FC.stations&&FC.stations[s.slug];el("fcw").hidden=!fc;if(fc)el("fcb").innerHTML=forecastHtml(fc)}
 let VZ=null,vzSel=0;
-const sg=x=>x==null?"–":(x>0?"+":"")+f(x,0);
-function lineChart(dates,vals){
- const W=640,H=250,L=48,R=12,T=14,B=30,pw=W-L-R,ph=H-T-B,pts=vals.filter(v=>v!=null);
- if(pts.length<2)return "<p class='sub'>Nincs elég adat.</p>";
- let mn=Math.min(...pts),mx=Math.max(...pts);const pad=(mx-mn||10)*.12;mn-=pad;mx+=pad;
- const X=i=>L+i/(vals.length-1)*pw,Y=v=>T+ph-(v-mn)/(mx-mn)*ph,dl=d=>`${MS[+d.slice(5,7)-1]} ${+d.slice(8)}.`;
- let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Vízállás napi átlagai">`;
- for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;s+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--bd)"/><text x="${L-5}" y="${y+4}" text-anchor="end" class="lbl" style="fill:var(--mu)">${Math.round(mn+(mx-mn)*k/4)}</text>`}
- let d="",pen=false,lastI=-1;vals.forEach((v,i)=>{if(v==null){pen=false;return}d+=(pen?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1);pen=true;lastI=i});
- s+=`<path d="${d}" fill="none" style="stroke:var(--ac)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
- if(lastI>=0)s+=`<circle cx="${X(lastI)}" cy="${Y(vals[lastI])}" r="5" style="fill:var(--wa)" stroke="#fff" stroke-width="2"/>`;
- [0,Math.floor((vals.length-1)/2),vals.length-1].forEach((i,k)=>{s+=`<text x="${X(i)}" y="${H-8}" text-anchor="${k==0?"start":k==2?"end":"middle"}" class="lbl" style="fill:var(--mu)">${dl(dates[i])}</text>`});
- return s+"</svg>";
-}
+const vStale=(x)=>(new Date(VZ.updated.replace(" ","T"))-new Date(x.time.replace(" ","T")))/36e5>24;
 function vzRender(){
  const v=VZ,g=v.gauges[vzSel],u=g.unit||"cm";
  const grp=[...new Set(v.gauges.map(x=>x.group))];
  el("vs").innerHTML=grp.map(G=>`<optgroup label="${esc(G)}">`+v.gauges.map((x,i)=>x.group===G?`<option value="${i}"${i===vzSel?" selected":""}>${esc(x.name)}</option>`:"").join("")+"</optgroup>").join("");
  const per=el("vp").value,n=v.dates.length,k=per==="all"?n:Math.min(+per,n);
  el("vsub").textContent=`${g.river?g.river+" · ":""}${g.name} · utolsó mérés: ${g.time}`;
- el("vtl").innerHTML=[["Aktuális vízállás",f(g.level,0)+" "+u,"hl"],["24 órás változás",sg(g.c24)+" "+u,""],["7 napos változás",sg(g.c7)+" "+u,""],
-  ["Idei legalacsonyabb ("+g.min.t+")",f(g.min.v,0)+" "+u,""],["Idei legmagasabb ("+g.max.t+")",f(g.max.v,0)+" "+u,""]]
-  .map(t=>`<div class="tile ${t[2]}"><b>${t[1]}</b><span>${esc(t[0])}</span></div>`).join("");
+ const stale=vStale(g),span=Math.round((new Date(g.time.replace(" ","T"))-new Date(g.from+"T00:00"))/864e5)+1,long=span>=30;
+ const T=[["Aktuális vízállás",f(g.level,0)+" "+u,"hl"],["24 órás változás",sg(g.c24)+" "+u,""],["7 napos változás",sg(g.c7)+" "+u,""]];
+ if(long)T.push(["Legalacsonyabb mért érték ("+g.min.t+")",f(g.min.v,0)+" "+u,""],["Legmagasabb mért érték ("+g.max.t+")",f(g.max.v,0)+" "+u,""]);
+ el("vtl").innerHTML=T.map(t=>`<div class="tile ${t[2]}"><b>${t[1]}</b><span>${esc(t[0])}</span></div>`).join("");
+ el("vnote").innerHTML=(stale?`<p class="note"><span class="tag now">régebbi adat</span> Ehhez a mérőhelyhez a legutóbbi betöltött adat időpontja ${esc(g.time)}, a többi mérőhelynél frissebb adat van.</p>`:"")+
+  (long?`<p class="note">A szélsőértékek a(z) ${esc(g.from)} óta betöltött adatokból származnak.</p>`:`<p class="note">Ehhez a mérőhelyhez csak ${span} napnyi adat van betöltve, ezért szélsőértékeket nem mutatunk.</p>`);
  el("vch").innerHTML=`<h3>Napi átlagos vízállás (${u})</h3>`+lineChart(v.dates.slice(n-k),g.v.slice(n-k));
  el("vt").innerHTML="<tr><th>Mérőhely</th><th>Folyó</th><th class=n>Vízállás</th><th class=n>24 óra</th><th class=n>7 nap</th><th>Mérés ideje</th></tr>"+
-  v.gauges.map((x,i)=>`<tr class="r" data-i="${i}"><td>${esc(x.name)}</td><td>${esc(x.river)}</td><td class=n><b>${f(x.level,0)}</b> ${esc(x.unit||"")}</td><td class=n>${sg(x.c24)}</td><td class=n>${sg(x.c7)}</td><td>${esc(x.time)}</td></tr>`).join("");
+  v.gauges.map((x,i)=>`<tr class="r" data-i="${i}"><td>${esc(x.name)}</td><td>${esc(x.river)}</td><td class=n><b>${f(x.level,0)}</b> ${esc(x.unit||"")}</td><td class=n>${sg(x.c24)}</td><td class=n>${sg(x.c7)}</td><td>${esc(x.time)}${vStale(x)?' <span class="tag now">régebbi</span>':""}</td></tr>`).join("");
  el("vt").querySelectorAll("tr.r").forEach(r=>r.onclick=()=>{vzSel=+r.dataset.i;vzRender()});
 }
 function vizugy(v){
  VZ=v;vzSel=Math.max(0,v.gauges.findIndex(x=>/Budapest|Óbuda/.test(x.name)));
  el("vs").onchange=e=>{vzSel=+e.target.value;vzRender()};el("vp").onchange=vzRender;
- el("vn").innerHTML=`Forrás: Országos Vízügyi Főigazgatóság (OVF), <a href="https://data.vizugy.hu" rel="noopener">data.vizugy.hu</a>. A vízállás az adott mérőhely saját nullpontjához viszonyított érték (cm), ezért a mérőhelyek értékei egymással nem hasonlíthatók össze, és nem azonosak a vízhozammal. Az adatsor utolsó része (jellemzően az utolsó év) még nem feldolgozott, ezért az adatok tájékoztató jellegűek; hivatalos felhasználáshoz és vízi közlekedéshez az OVF hivatalos közlései az irányadók. A 24 órás és 7 napos változás, a napi átlag és az idei szélsőértékek számított értékek.`;
+ el("vn").innerHTML=`Forrás: Országos Vízügyi Főigazgatóság (OVF), <a href="https://data.vizugy.hu" rel="noopener">data.vizugy.hu</a>. A vízállás az adott mérőhely saját nullpontjához viszonyított érték (cm), ezért a mérőhelyek értékei egymással nem hasonlíthatók össze, és nem azonosak a vízhozammal. Az adatsor utolsó része (jellemzően az utolsó év) még nem feldolgozott, ezért az adatok tájékoztató jellegűek; hivatalos felhasználáshoz és vízi közlekedéshez az OVF hivatalos közlései az irányadók. A 24 órás és 7 napos változás (csak akkor jelenik meg, ha van mérés a megfelelő korábbi időpontból), a napi átlag és a szélsőértékek számított értékek. Részletek: <a href="modszertan.html">Módszertan</a>.`;
  el("vz").hidden=false;vzRender();
 }
 function init(){
  el("demo").style.display=DATA.demo?"":"none";
  el("up").textContent=new Date(DATA.updated).toLocaleString("hu-HU")+(DATA.demo?" (demó)":"");
+ const hi=DATA.stations.findIndex(s=>s.slug&&s.slug===location.hash.slice(1));if(hi>=0){sel=hi;csi=hi}
  if(sel===null&&DATA.stations.length){sel=0;csi=0}
  map();table();recs();detail();cmp();
 }
@@ -282,6 +265,8 @@ fetch("data.json",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject())
  .then(d=>{if(d&&d.stations&&d.stations.length)DATA=d}).catch(()=>{}).finally(init);
 fetch("vizugy.json",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject())
  .then(v=>{if(v&&v.gauges&&v.gauges.length)vizugy(v)}).catch(()=>{});
+fetch("forecast.json",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject())
+ .then(F=>{if(F&&F.stations){FC=F;fcRender()}}).catch(()=>{});
 </script>
 <script src="assets/site.js"></script>
 </body>
