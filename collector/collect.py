@@ -19,7 +19,7 @@ DAYS = 14
 CACHE_DAYS = 30        # re-download the long history at most this often
 MIN_YEARS_AVG = 5      # no average if fewer past years than this
 MAX_MISSING = 2        # a month with more missing days than this is left out
-UA = "Vizfigyelo/1.0 (public water site; contact: CHANGE-ME@example.com)"
+UA = "Vizfigyelo/1.0 (public water site; contact: maksa.monika@gmail.com)"
 ROOT = Path(__file__).resolve().parent.parent
 OUT, CACHE = ROOT / "data.json", ROOT / "climate_cache.json"
 
