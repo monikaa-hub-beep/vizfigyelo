@@ -20,6 +20,9 @@ RULES = [
     (("Záhony", "Tokaj", "Szeged", "Szolnok", "Tiszafüred", "Csongrád", "Vásárosnamény", "Tisza"), "Tisza", "Tisza"),
 ]
 ORDER = {"Duna": 0, "Tisza": 1, "Tavak": 2, "Egyéb": 3}
+LAKES = {"2891": "Balaton", "818": "Velencei-tó"}   # station id -> lake (add Tisza-tó, Fertő gauges here once downloaded)
+MIN_READINGS = 3     # a gauge with fewer readings in all files is skipped (e.g. a single odd value)
+TOL24, TOL7 = timedelta(hours=3), timedelta(hours=12)   # how close the reference reading must be to count as "24 h / 7 days ago"
 
 def classify(name):
     for words, group, river in RULES:
@@ -50,12 +53,13 @@ def parse_file(path):
                 data.setdefault((sid, kind), {"name": name, "unit": unit, "r": {}})["r"][t] = v
     return data
 
-def at_or_before(readings, times, target):
+def at_or_before(readings, times, target, tol):
+    """Reading at/just before `target`, but only if it is within `tol` of it (otherwise None: no data gaps passed off as changes)."""
     best = None
     for t in times:
         if t <= target: best = t
         else: break
-    return readings[best] if best else None
+    return readings[best] if best and target - best <= tol else None
 
 def main():
     files = sorted(glob.glob(str(ROOT / "data" / "vizugy*.csv")))
@@ -68,15 +72,15 @@ def main():
     gauges, alltimes = [], []
     for (sid, kind), g in merged.items():
         times = sorted(g["r"])
-        if not times: print(f"skip {g['name']}: no readings", file=sys.stderr); continue
+        if len(times) < MIN_READINGS: print(f"skip {g['name']}: only {len(times)} reading(s)", file=sys.stderr); continue
         last = times[-1]; level = g["r"][last]
-        c24 = at_or_before(g["r"], times, last - timedelta(hours=24)); c7 = at_or_before(g["r"], times, last - timedelta(days=7))
+        c24 = at_or_before(g["r"], times, last - timedelta(hours=24), TOL24); c7 = at_or_before(g["r"], times, last - timedelta(days=7), TOL7)
         lo = min(times, key=lambda t: (g["r"][t], t)); hi = max(times, key=lambda t: (g["r"][t], -t.timestamp()))
         daily = {}
         for t in times: daily.setdefault(t.date(), []).append(g["r"][t])
-        group, river = classify(g["name"])
+        group, river = ("Tavak", LAKES[sid]) if sid in LAKES else classify(g["name"])
         gauges.append({"name": g["name"], "id": sid, "kind": kind, "unit": g["unit"], "group": group, "river": river,
-                       "time": last.strftime("%Y-%m-%d %H:%M"), "level": level,
+                       "time": last.strftime("%Y-%m-%d %H:%M"), "from": times[0].strftime("%Y-%m-%d"), "level": level,
                        "c24": None if c24 is None else round(level - c24, 1), "c7": None if c7 is None else round(level - c7, 1),
                        "min": {"v": g["r"][lo], "t": lo.strftime("%Y-%m-%d")}, "max": {"v": g["r"][hi], "t": hi.strftime("%Y-%m-%d")},
                        "_daily": {d: round(sum(v) / len(v), 1) for d, v in daily.items()}})

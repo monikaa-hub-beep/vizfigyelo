@@ -23,15 +23,15 @@ UA = "Vizfigyelo/1.0 (public water site; contact: CHANGE-ME@example.com)"
 ROOT = Path(__file__).resolve().parent.parent
 OUT, CACHE = ROOT / "data.json", ROOT / "climate_cache.json"
 
-STATIONS = [  # "ids": HungaroMet station numbers, first = preferred, the rest = fallbacks (see station_meta_auto.csv)
-    {"n": "Budapest",    "match": "Budapest",    "ids": ["44527", "44121"]},  # Budapest Pestszentlőrinc
-    {"n": "Győr",        "match": "Győr",        "ids": ["23703", "23714"]},  # Győr Likócs
-    {"n": "Pécs",        "match": "Pécs",        "ids": ["38605"]},           # Pécs Árpádtető
-    {"n": "Szeged",      "match": "Szeged",      "ids": ["58102", "58116"]},  # Szeged belterület
-    {"n": "Debrecen",    "match": "Debrecen",    "ids": ["64711", "64710"]},  # Debrecen repülőtér
-    {"n": "Miskolc",     "match": "Miskolc",     "ids": ["52744"]},           # Miskolc Diósgyőr
-    {"n": "Szombathely", "match": "Szombathely", "ids": ["15310"]},
-    {"n": "Siófok",      "match": "Siófok",      "ids": ["36100", "36115"]},  # Siófok
+STATIONS = [  # "ids": HungaroMet station numbers (first = preferred, rest = fallbacks); "slug": page address; "loc": "where?" form for titles
+    {"n": "Budapest",    "slug": "budapest",    "loc": "Budapesten",    "match": "Budapest",    "ids": ["44527", "44121"]},  # Budapest Pestszentlőrinc
+    {"n": "Győr",        "slug": "gyor",        "loc": "Győrben",       "match": "Győr",        "ids": ["23703", "23714"]},  # Győr Likócs
+    {"n": "Pécs",        "slug": "pecs",        "loc": "Pécsett",       "match": "Pécs",        "ids": ["38605"]},           # Pécs Árpádtető
+    {"n": "Szeged",      "slug": "szeged",      "loc": "Szegeden",      "match": "Szeged",      "ids": ["58102", "58116"]},  # Szeged belterület
+    {"n": "Debrecen",    "slug": "debrecen",    "loc": "Debrecenben",   "match": "Debrecen",    "ids": ["64711", "64710"]},  # Debrecen repülőtér
+    {"n": "Miskolc",     "slug": "miskolc",     "loc": "Miskolcon",     "match": "Miskolc",     "ids": ["52744"]},           # Miskolc Diósgyőr
+    {"n": "Szombathely", "slug": "szombathely", "loc": "Szombathelyen", "match": "Szombathely", "ids": ["15310"]},
+    {"n": "Siófok",      "slug": "siofok",      "loc": "Siófokon",      "match": "Siófok",      "ids": ["36100", "36115"]},  # Siófok
 ]
 
 def get(url):
@@ -195,7 +195,7 @@ def main():
                 dates = [(end - timedelta(i)).isoformat() for i in range(DAYS - 1, -1, -1)]
                 mtd, ytd = month_to_date(days, last), year_to_date(days, last)
                 sm, sy = period_stats(days, last, mtd["sum"], ytd["sum"])
-                result.append({"n": s["n"], "id": sid, "hmName": m["name"], "lo": m["lo"], "la": m["la"],
+                result.append({"n": s["n"], "slug": s["slug"], "loc": s["loc"], "id": sid, "hmName": m["name"], "lo": m["lo"], "la": m["la"],
                                "lastDate": last, "last": recent[last], "dates": dates, "daily": [days.get(d) for d in dates],
                                "mtd": mtd, "mtdAvg": sm and sm["avg"], "mtdAvgN": sm and sm["n"], "mtdAvgFrom": sm and sm["from"], "mtdAvgTo": sm and sm["to"],
                                "mtdStats": sm, "ytd": ytd, "ytdStats": sy,
