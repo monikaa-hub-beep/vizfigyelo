@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 API = "https://api.open-meteo.com/v1/forecast"
-DAILY = "precipitation_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min"
+DAILY = "precipitation_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min,snowfall_sum"
 DAYS = 7
 UA = "Vizfigyelo/1.0 (public water site; contact: CHANGE-ME@example.com)"
 OUT = ROOT / "forecast.json"
@@ -32,7 +32,7 @@ def parse(resp, stations):
         d = it["daily"]; n = len(d["time"])
         def col(k): return [None if v is None else round(float(v), 1) for v in d.get(k, [None] * n)]
         out[s["slug"]] = {"dates": d["time"], "precip": col("precipitation_sum"), "prob": col("precipitation_probability_max"),
-                          "tmax": col("temperature_2m_max"), "tmin": col("temperature_2m_min")}
+                          "tmax": col("temperature_2m_max"), "tmin": col("temperature_2m_min"), "snow": col("snowfall_sum")}
     return out
 
 def main():

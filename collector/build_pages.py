@@ -101,7 +101,7 @@ def page(s, cfg, stations_cfg, updated):
         desc = f"Hány mm eső esett {loc}? Mért csapadék a(z) {label(s)} állomáson: legutóbbi nap, hónap és év, az átlaggal és a rekordokkal összevetve."
         head = f'<p class="sub">{P} mérőállomás · legutóbbi adat: {escape(s["lastDate"])} · forrás: HungaroMet</p>'
         body = (f'<div class="card"><h2>Röviden</h2>{tiles_html(s)}{answer_html(s)}</div>'
-                f'<div class="card"><h2>Hány mm eső esett az elmúlt 14 napban?</h2><div id="c14"></div><p class="note">Napi csapadékösszeg (mm); egy nap a HungaroMet szerint 06:00-tól másnap 06:00-ig (UTC) tart.</p></div>'
+                f'<div class="card"><h2>Hány mm eső esett az elmúlt 14 napban?</h2><div id="c14"></div><p class="note">Napi csapadékösszeg (mm); az érték az eső és a hó együtt, a hó olvadt vízmennyisége; egy nap a HungaroMet szerint 06:00-tól másnap 06:00-ig (UTC) tart.</p></div>'
                 f'<div class="card"><h2>Rekordok és az átlag: mennyi eső esett a korábbi években?</h2>{records_html(s)}</div>'
                 f'<div class="card"><h2>Havi összehasonlítás: idei év és az átlag</h2>{monthly_html(s)}</div>'
                 '<div class="card" id="fcc" hidden><h2>Mennyi eső várható a következő napokban?</h2><div id="fc"></div></div>')
