@@ -42,11 +42,12 @@ function lineChart(dates,vals){
 function forecastHtml(fc){
  if(!fc||!fc.dates||!fc.dates.length)return "";
  var tot=sum(fc.precip.filter(function(v){return v!=null}));
+ var hs=!!(fc.snow&&fc.snow.some(function(v){return v>0}));
  var s='<div class="legend"><span><i style="background:var(--ac2)"></i>Várható csapadék (mm), modellezett előrejelzés</span></div>'+
   barChart(fc.dates.map(dlab),[{v:fc.precip,c:"var(--ac2)"}]);
- s+='<div class="sc"><table><tr><th>Nap</th><th class=n>Várható csapadék (mm)</th><th class=n>Csapadék esélye</th><th class=n>Hőmérséklet (°C)</th></tr>'+
-  fc.dates.map(function(d,i){return '<tr><td>'+esc(dlab(d))+'</td><td class=n>'+f(fc.precip[i])+'</td><td class=n>'+(fc.prob&&fc.prob[i]!=null?f(fc.prob[i],0)+"%":"–")+'</td><td class=n>'+(fc.tmin&&fc.tmin[i]!=null?f(fc.tmin[i],0)+" … "+f(fc.tmax[i],0):"–")+'</td></tr>'}).join("")+'</table></div>';
- s+='<p class="note">A következő '+fc.dates.length+' napban összesen várható: <b>'+f(tot)+' mm</b> csapadék. Ez modellszámítás, nem mérés. Forrás: <a href="https://open-meteo.com/" rel="noopener">Open-Meteo.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a>).</p>';
+ s+='<div class="sc"><table><tr><th>Nap</th><th class=n>Várható csapadék (mm)</th><th class=n>Csapadék esélye</th><th class=n>Hőmérséklet (°C)</th>'+(hs?'<th class=n>Hó (cm)</th>':'')+'</tr>'+
+  fc.dates.map(function(d,i){return '<tr><td>'+esc(dlab(d))+'</td><td class=n>'+f(fc.precip[i])+'</td><td class=n>'+(fc.prob&&fc.prob[i]!=null?f(fc.prob[i],0)+"%":"–")+'</td><td class=n>'+(fc.tmin&&fc.tmin[i]!=null?f(fc.tmin[i],0)+" … "+f(fc.tmax[i],0):"–")+'</td>'+(hs?'<td class=n>'+(fc.snow[i]>0?'❄ '+f(fc.snow[i]):'–')+'</td>':'')+'</tr>'}).join("")+'</table></div>';
+ s+=(hs?'<p class="note">❄ A csapadék egy része hóként érkezhet. A milliméterben megadott érték a hó olvadt vízmennyisége, a „Hó (cm)” oszlop a várható friss hóréteg vastagsága.</p>':'')+'<p class="note">A következő '+fc.dates.length+' napban összesen várható: <b>'+f(tot)+' mm</b> csapadék. Ez modellszámítás, nem mérés. Forrás: <a href="https://open-meteo.com/" rel="noopener">Open-Meteo.com</a> (<a href="https://creativecommons.org/licenses/by/4.0/" rel="noopener">CC BY 4.0</a>).</p>';
  return s;
 }
 /* share button: native share sheet when available, otherwise copy the link */
