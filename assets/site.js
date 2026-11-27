@@ -1,7 +1,7 @@
 (function(){"use strict";
 var KEY="vf_consent",cbs=[];
 // Google Analytics 4: put your Measurement ID here (looks like G-ABC123XYZ9). Loaded ONLY after the visitor accepts statistics.
-var GA_ID="G-XXXXXXXXXX";
+var GA_ID="G-515KG3269B";
 function get(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
 function fire(){var c=get();if(c)cbs.forEach(function(f){f(c)})}
 function set(a){try{localStorage.setItem(KEY,JSON.stringify({necessary:true,analytics:!!a,ts:Date.now()}))}catch(e){}var b=document.getElementById("cb");if(b)b.remove();fire()}
